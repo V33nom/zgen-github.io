@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZGEN Bespoke Software Craft</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100;300;400;700;900&display=swap');
+
+        :root {
+            --cyan: #00D1FF;
+            --violet: #7000FF;
+            --bg: #020205;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: #cbd5e1;
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+            cursor: default;
+        }
+
+        .animate-gradient-x {
+            background-size: 200% 200%;
+            animation: gradient-x 5s ease infinite;
+        }
+
+        @keyframes gradient-x {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        .animate-marquee-fast {
+            animation: marquee 20s linear infinite;
+        }
+
+        @keyframes marquee {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+
+        .animate-spin-slow {
+            animation: spin 15s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        .view { display: none; }
+        .view.active { display: block; }
+
+        ::selection {
+            background: var(--cyan);
+            color: black;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-thumb { background: var(--cyan); border-radius: 10px; }
+
+        .terminal-cursor {
+            display: inline-block;
+            width: 8px;
+            height: 15px;
+            background: var(--cyan);
+            animation: blink 1s infinite;
+            vertical-align: middle;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+
+        /* Transmission Card Decryption Effect */
+        .transmission-card .decrypt-text {
+            filter: blur(5px);
+            opacity: 0.5;
+            transition: all 0.5s ease;
+        }
+        .transmission-card:hover .decrypt-text {
+            filter: blur(0);
+            opacity: 1;
+        }
+
+        /* Pipeline Step Animation */
+        .pipeline-line {
+            background: linear-gradient(to bottom, var(--cyan), transparent);
+            box-shadow: 0 0 15px var(--cyan);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 3D Background Canvas -->
+    <div id="nebula-container" class="fixed inset-0 z-0 pointer-events-none opacity-40"></div>
+
+    <!-- Navigation -->
+    <nav class="fixed top-0 w-full z-[120] p-6 md:p-12 flex justify-between items-center transition-all duration-500" id="main-nav">
+        <div class="flex items-center gap-6 cursor-pointer group" onclick="showView('home')">
+            <div class="w-12 h-12 bg-white flex items-center justify-center rounded-2xl rotate-3 group-hover:rotate-0 transition-transform">
+                <i data-lucide="command" class="text-black w-6 h-6"></i>
+            </div>
+            <div class="hidden md:block text-left">
+                <span class="text-2xl font-black text-white tracking-tighter leading-none block">ZGEN.</span>
+                <span class="text-[8px] font-bold tracking-[0.4em] text-[#00D1FF] uppercase">System_Active</span>
+            </div>
+        </div>
+        
+        <div class="hidden lg:flex items-center gap-10 bg-white/5 backdrop-blur-3xl border border-white/10 px-10 py-5 rounded-full">
+            <button onclick="showView('home')" class="nav-link text-[10px] font-black uppercase tracking-[0.3em] text-white relative py-1" data-link="home">
+                Home
+                <span class="nav-indicator absolute -bottom-1 left-0 w-full h-[2px] bg-[#00D1FF] rounded-full"></span>
+            </button>
+            <button onclick="showView('archives')" class="nav-link text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500 hover:text-[#00D1FF] transition-colors relative py-1" data-link="archives">
+                Archives
+            </button>
+            <button onclick="showView('laboratory')" class="nav-link text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500 hover:text-[#00D1FF] transition-colors relative py-1" data-link="laboratory">
+                Laboratory
+            </button>
+            <button onclick="showView('connect')" class="nav-link text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500 hover:text-[#00D1FF] transition-colors relative py-1" data-link="connect">
+                Connect
+            </button>
+        </div>
+
+        <div class="flex items-center gap-4">
+            <button onclick="toggleMobileMenu()" class="lg:hidden w-12 h-12 flex items-center justify-center bg-white/5 border border-white/10 rounded-full">
+                <i data-lucide="menu" id="menu-icon" class="text-white"></i>
+            </button>
+            <button onclick="showView('connect')" class="hidden lg:flex items-center gap-4 text-[11px] font-black uppercase tracking-[0.4em] text-black px-10 py-5 bg-white rounded-full hover:bg-[#00D1FF] transition-all">
+                Uplink <i data-lucide="arrow-right" class="w-4 h-4"></i>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Mobile Menu Overlay -->
+    <div id="mobile-menu" class="fixed inset-0 z-[110] bg-[#030014] flex flex-col items-center justify-center transition-transform duration-700 ease-in-out translate-x-full">
+        <div class="flex flex-col gap-10 text-center">
+            <button onclick="showView('home')" class="text-6xl font-black text-white uppercase tracking-tighter hover:text-[#00D1FF] transition-colors">Home.</button>
+            <button onclick="showView('archives')" class="text-6xl font-black text-white uppercase tracking-tighter hover:text-[#00D1FF] transition-colors">Archives.</button>
+            <button onclick="showView('laboratory')" class="text-6xl font-black text-white uppercase tracking-tighter hover:text-[#00D1FF] transition-colors">Laboratory.</button>
+            <button onclick="showView('connect')" class="text-6xl font-black text-white uppercase tracking-tighter hover:text-[#00D1FF] transition-colors">Connect.</button>
+        </div>
+    </div>
+
+    <!-- Aura Ambassador Container -->
+    <div class="fixed bottom-10 right-10 z-[100] flex flex-col items-end pointer-events-none md:pointer-events-auto group">
+        <div id="aura-status-box" class="bg-[#020205]/95 backdrop-blur-3xl border border-white/10 p-6 rounded-[2rem] mb-6 w-80 transition-all duration-700 opacity-0 translate-y-6 group-hover:opacity-100 group-hover:translate-y-0 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+            <div class="flex items-center justify-between mb-4 border-b border-white/5 pb-3">
+                <div class="flex items-center gap-2">
+                    <div class="w-2 h-2 rounded-full bg-[#00D1FF] animate-pulse"></div>
+                    <span class="text-[10px] font-black text-[#00D1FF] tracking-[0.2em] uppercase">AURA_OS v5.0</span>
+                </div>
+                <i data-lucide="fingerprint" class="text-white opacity-30 w-4 h-4"></i>
+            </div>
+            <div class="bg-[#00D1FF]/5 p-3 rounded-xl mb-4">
+                <p id="aura-msg" class="text-[11px] text-[#00D1FF] font-mono font-bold uppercase">PROCESSOR_CORE: OPTIMAL</p>
+            </div>
+            <p class="text-[11px] text-zinc-500 leading-relaxed font-mono italic">
+                > All systems functional. Bespoke logic verified for current sector.
+            </p>
+        </div>
+        <div class="relative">
+            <div id="aura-container" class="w-48 h-48 md:w-64 md:h-64"></div>
+            <div class="absolute inset-0 bg-radial-gradient from-[#00D1FF]/5 to-transparent pointer-events-none rounded-full"></div>
+        </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <main id="view-container" class="relative z-10">
+        
+        <!-- HOME VIEW -->
+        <div id="home" class="view active animate-in fade-in duration-1000">
+            <!-- Hero -->
+            <section class="relative h-screen flex flex-col justify-center px-6 md:px-24">
+                <div class="max-w-7xl relative z-10">
+                    <div class="flex items-center gap-4 mb-10 overflow-hidden">
+                        <div class="h-[1px] w-16 bg-[#00D1FF]"></div>
+                        <span class="text-[10px] font-black text-[#00D1FF] uppercase tracking-[0.8em]">Engineering Digital Authority</span>
+                    </div>
+                    
+                    <h1 class="text-7xl md:text-[14rem] font-black text-white leading-[0.75] tracking-tighter uppercase mb-20 relative">
+                        Pure <br />
+                        <span class="text-transparent bg-clip-text bg-gradient-to-r from-[#00D1FF] via-white to-[#00D1FF] animate-gradient-x italic leading-none">Code.</span>
+                    </h1>
+
+                    <div class="grid md:grid-cols-12 gap-16 items-end">
+                        <div class="md:col-span-5">
+                            <p class="text-2xl md:text-4xl font-light text-zinc-500 leading-tight mb-12">
+                                We craft <span class="text-white font-black underline decoration-[#00D1FF] underline-offset-8">original logic</span> for brands that refuse to blend in.
+                            </p>
+                            <div class="flex gap-4">
+                                <button onclick="showView('archives')" class="px-12 py-6 bg-white text-black font-black uppercase text-xs tracking-[0.4em] rounded-full hover:bg-[#00D1FF] transition-all transform hover:-translate-y-1">The Forge</button>
+                                <button onclick="showView('connect')" class="px-12 py-6 border border-white/10 text-white font-black uppercase text-xs tracking-[0.4em] rounded-full hover:bg-white/10 transition-all">Uplink</button>
+                            </div>
+                        </div>
+                        <div class="md:col-span-7 flex flex-col md:flex-row justify-end gap-12">
+                            <div class="text-right border-r border-white/5 pr-12">
+                                <span class="text-7xl font-black text-white leading-none">99%</span>
+                                <p class="text-[9px] font-bold text-zinc-600 uppercase tracking-widest mt-2">Uptime Pulse</p>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-7xl font-black text-white leading-none">12ms</span>
+                                <p class="text-[9px] font-bold text-zinc-600 uppercase tracking-widest mt-2">Latency Hub</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+               <br><br><br><br><br>
+            <!-- Ticker -->
+            <div class="bg-[#00D1FF] py-6 overflow-hidden flex whitespace-nowrap z-20 relative rotate-2 scale-105 mb-40 shadow-2xl">
+                <div class="flex animate-marquee-fast">
+                    <span class="text-4xl md:text-6xl font-black text-black uppercase tracking-tighter mx-20">Original_Logic <span class="text-white">*</span> Studio_Grade <span class="text-white">*</span> Neural_Architecture <span class="text-white">*</span></span>
+                    <span class="text-4xl md:text-6xl font-black text-black uppercase tracking-tighter mx-20">Original_Logic <span class="text-white">*</span> Studio_Grade <span class="text-white">*</span> Neural_Architecture <span class="text-white">*</span></span>
+                </div>
+            </div>
+
+            <!-- UNIQUE TESTIMONIALS: CLIENT TRANSMISSIONS -->
+            <section class="relative py-40 px-6 md:px-24 z-10">
+                <div class="max-w-7xl mx-auto">
+                    <div class="flex items-center gap-4 mb-20">
+                        <div class="w-12 h-12 border border-[#00D1FF] rounded-full flex items-center justify-center animate-spin-slow">
+                            <i data-lucide="radio" class="text-[#00D1FF] w-6 h-6"></i>
+                        </div>
+                        <h2 class="text-6xl md:text-9xl font-black text-white uppercase tracking-tighter italic">Transmissions.</h2>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="testimonial-grid">
+                        <!-- Testimonials injected via JS -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- THE BUILD PIPELINE: PROCESS SECTION -->
+            <section class="relative py-40 px-6 md:px-24 z-10 border-t border-white/5 bg-white/[0.02]">
+                <div class="max-w-7xl mx-auto">
+                    <div class="text-center mb-32">
+                        <span class="text-[#00D1FF] text-[10px] font-black uppercase tracking-[0.8em]">Engineering Pipeline v1.0</span>
+                        <h2 class="text-5xl md:text-8xl font-black text-white uppercase tracking-tighter mt-4">The Method.</h2>
+                    </div>
+
+                    <div class="relative grid grid-cols-1 md:grid-cols-4 gap-12">
+                        <!-- Vertical line for mobile, horizontal for desktop -->
+                        <div class="hidden md:block absolute top-10 left-0 w-full h-px bg-white/10 z-0"></div>
+                        
+                        <div class="relative z-10 group">
+                            <div class="w-20 h-20 bg-black border border-white/10 rounded-3xl flex items-center justify-center mb-8 group-hover:border-[#00D1FF] transition-all duration-500 shadow-xl">
+                                <i data-lucide="search" class="text-zinc-600 group-hover:text-[#00D1FF] w-8 h-8"></i>
+                            </div>
+                            <span class="text-[#00D1FF] font-mono text-[10px] mb-2 block">PHASE_01</span>
+                            <h4 class="text-2xl font-black text-white uppercase tracking-tighter mb-4">Discovery</h4>
+                            <p class="text-sm text-zinc-500 leading-relaxed font-light">Deep analysis of brand DNA and architectural requirements.</p>
+                        </div>
+
+                        <div class="relative z-10 group">
+                            <div class="w-20 h-20 bg-black border border-white/10 rounded-3xl flex items-center justify-center mb-8 group-hover:border-[#00D1FF] transition-all duration-500 shadow-xl">
+                                <i data-lucide="layers" class="text-zinc-600 group-hover:text-[#00D1FF] w-8 h-8"></i>
+                            </div>
+                            <span class="text-[#00D1FF] font-mono text-[10px] mb-2 block">PHASE_02</span>
+                            <h4 class="text-2xl font-black text-white uppercase tracking-tighter mb-4">Architecture</h4>
+                            <p class="text-sm text-zinc-500 leading-relaxed font-light">Logic-first wireframing and scalable system design.</p>
+                        </div>
+
+                        <div class="relative z-10 group">
+                            <div class="w-20 h-20 bg-black border border-white/10 rounded-3xl flex items-center justify-center mb-8 group-hover:border-[#00D1FF] transition-all duration-500 shadow-xl">
+                                <i data-lucide="code" class="text-zinc-600 group-hover:text-[#00D1FF] w-8 h-8"></i>
+                            </div>
+                            <span class="text-[#00D1FF] font-mono text-[10px] mb-2 block">PHASE_03</span>
+                            <h4 class="text-2xl font-black text-white uppercase tracking-tighter mb-4">The Forge</h4>
+                            <p class="text-sm text-zinc-500 leading-relaxed font-light">Writing bespoke, hand-crafted original codebases.</p>
+                        </div>
+
+                        <div class="relative z-10 group">
+                            <div class="w-20 h-20 bg-black border border-white/10 rounded-3xl flex items-center justify-center mb-8 group-hover:border-[#00D1FF] transition-all duration-500 shadow-xl">
+                                <i data-lucide="rocket" class="text-zinc-600 group-hover:text-[#00D1FF] w-8 h-8"></i>
+                            </div>
+                            <span class="text-[#00D1FF] font-mono text-[10px] mb-2 block">PHASE_04</span>
+                            <h4 class="text-2xl font-black text-white uppercase tracking-tighter mb-4">Deployment</h4>
+                            <p class="text-sm text-zinc-500 leading-relaxed font-light">System-wide launch with continuous performance tracking.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Bento Forge -->
+            <section class="relative py-40 px-6 md:px-24 z-10 bg-[#050505]/60 backdrop-blur-3xl border-y border-white/5">
+                <div class="max-w-7xl mx-auto">
+                    <div class="flex flex-col md:flex-row justify-between items-end mb-24 gap-12">
+                        <div>
+                            <span class="text-[10px] font-black text-[#00D1FF] uppercase tracking-[0.6em] block mb-4">The Output Archive</span>
+                            <h2 class="text-6xl md:text-9xl font-black text-white uppercase tracking-tighter leading-none italic">The Forge.</h2>
+                        </div>
+                        <p class="max-w-xs text-zinc-500 text-sm leading-relaxed border-l border-[#00D1FF] pl-10 uppercase font-bold tracking-widest">
+                            Every build is a prototype of the future. We don't ship features; we ship engineered dominance.
+                        </p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-8 h-auto lg:h-[900px]">
+                        <div class="md:col-span-2 md:row-span-2 relative group overflow-hidden rounded-[3rem] bg-white/5 border border-white/10 hover:border-[#00D1FF]/50 transition-all duration-700 aspect-square md:aspect-auto">
+                            <img src="https://images.unsplash.com/photo-1614850523296-d8c1af93d400?q=80&w=1200" class="absolute inset-0 w-full h-full object-cover opacity-10 group-hover:scale-105 group-hover:opacity-40 transition-all duration-1000 grayscale">
+                            <div class="relative z-10 p-12 h-full flex flex-col justify-end">
+                                <div class="flex items-center gap-3 mb-4"><div class="w-2 h-2 bg-[#00D1FF] rounded-full animate-pulse"></div><span class="text-[10px] font-black text-[#00D1FF] uppercase tracking-widest">3D Research</span></div>
+                                <h3 class="text-4xl md:text-6xl font-black text-white tracking-tighter uppercase leading-[0.9]">AXON_CORE</h3>
+                                <div class="mt-8 flex items-center gap-4 opacity-0 group-hover:opacity-100 transition-all translate-y-4 group-hover:translate-y-0">
+                                    <div class="w-12 h-12 bg-white text-black rounded-full flex items-center justify-center"><i data-lucide="arrow-up-right"></i></div>
+                                    <span class="text-[10px] font-black text-white uppercase tracking-widest">Access Node</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="relative group overflow-hidden rounded-[3rem] bg-white/5 border border-white/10 hover:border-[#00D1FF]/50 transition-all duration-700 aspect-square md:aspect-auto h-[400px] lg:h-full">
+                            <img src="https://images.unsplash.com/photo-1639762681485-074b7f938ba0?q=80&w=800" class="absolute inset-0 w-full h-full object-cover opacity-10 group-hover:scale-105 transition-all grayscale">
+                            <div class="relative z-10 p-10 h-full flex flex-col justify-end">
+                                <span class="text-[10px] font-black text-[#00D1FF] uppercase tracking-widest mb-3">Fintech</span>
+                                <h3 class="text-3xl font-black text-white tracking-tighter uppercase leading-none">FIN_NODE</h3>
+                            </div>
+                        </div>
+                        <div class="relative group overflow-hidden rounded-[3rem] bg-white/5 border border-white/10 hover:border-[#00D1FF]/50 transition-all duration-700 aspect-square md:aspect-auto h-[400px] lg:h-full">
+                            <img src="https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=800" class="absolute inset-0 w-full h-full object-cover opacity-10 group-hover:scale-105 transition-all grayscale">
+                            <div class="relative z-10 p-10 h-full flex flex-col justify-end">
+                                <span class="text-[10px] font-black text-[#00D1FF] uppercase tracking-widest mb-3">Aerospace</span>
+                                <h3 class="text-3xl font-black text-white tracking-tighter uppercase leading-none">AERO_SYS</h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Terminal -->
+            <section class="relative py-40 px-6 md:px-24 z-10">
+                <div class="max-w-7xl mx-auto grid lg:grid-cols-12 gap-20">
+                    <div class="lg:col-span-5">
+                        <div class="text-[10px] font-black text-[#00D1FF] tracking-[0.6em] uppercase mb-12 flex items-center gap-4">
+                            <i data-lucide="terminal" class="w-4 h-4"></i> Operational Feed
+                        </div>
+                        <h2 class="text-5xl md:text-7xl font-black text-white uppercase tracking-tighter leading-none mb-10">
+                            Built on <br /> <span class="text-zinc-800 italic">Integrity.</span>
+                        </h2>
+                        <div id="studio-terminal" class="bg-black/80 border border-white/10 p-8 rounded-[2rem] font-mono text-[11px] leading-relaxed text-zinc-500 h-64 overflow-hidden relative group hover:border-[#00D1FF]/50 transition-colors shadow-2xl">
+                            <div class="flex gap-2 mb-6">
+                                <div class="w-2 h-2 rounded-full bg-red-500/50"></div>
+                                <div class="w-2 h-2 rounded-full bg-yellow-500/50"></div>
+                                <div class="w-2 h-2 rounded-full bg-green-500/50"></div>
+                            </div>
+                            <div id="terminal-content"></div>
+                            <span class="terminal-cursor"></span>
+                        </div>
+                    </div>
+                    <div class="lg:col-span-7">
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4" id="tech-stack-grid">
+                            <!-- Tech items rendered via JS -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Sectors -->
+            <section class="relative py-40 px-6 md:px-24 z-10 border-t border-white/5">
+                <div class="max-w-7xl mx-auto">
+                    <div class="flex items-center gap-6 mb-24">
+                        <div class="w-16 h-16 bg-white flex items-center justify-center rounded-full text-black">
+                            <i data-lucide="globe" class="w-8 h-8"></i>
+                        </div>
+                        <h2 class="text-6xl md:text-9xl font-black uppercase tracking-tighter text-white">Sectors.</h2>
+                    </div>
+                    
+                    <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+                        <div class="group p-10 bg-white/5 border border-white/5 rounded-[3rem] hover:bg-white hover:text-black transition-all duration-500">
+                            <i data-lucide="shield-check" class="text-[#00D1FF] mb-8 group-hover:text-black w-10 h-10 transition-colors"></i>
+                            <h4 class="text-2xl font-black uppercase tracking-tighter mb-4">Aero Industry</h4>
+                            <p class="text-sm opacity-50 leading-relaxed font-medium">Precision telemetry and secure data nodes.</p>
+                        </div>
+                        <div class="group p-10 bg-white/5 border border-white/5 rounded-[3rem] hover:bg-white hover:text-black transition-all duration-500">
+                            <i data-lucide="database" class="text-[#00D1FF] mb-8 group-hover:text-black w-10 h-10 transition-colors"></i>
+                            <h4 class="text-2xl font-black uppercase tracking-tighter mb-4">Fintech Hub</h4>
+                            <p class="text-sm opacity-50 leading-relaxed font-medium">High-speed ledger logic and trust.</p>
+                        </div>
+                        <div class="group p-10 bg-white/5 border border-white/5 rounded-[3rem] hover:bg-white hover:text-black transition-all duration-500">
+                            <i data-lucide="globe" class="text-[#00D1FF] mb-8 group-hover:text-black w-10 h-10 transition-colors"></i>
+                            <h4 class="text-2xl font-black uppercase tracking-tighter mb-4">Real Estate</h4>
+                            <p class="text-sm opacity-50 leading-relaxed font-medium">Luxury portals and 3D architecture.</p>
+                        </div>
+                        <div class="group p-10 bg-white/5 border border-white/5 rounded-[3rem] hover:bg-white hover:text-black transition-all duration-500">
+                            <i data-lucide="cpu" class="text-[#00D1FF] mb-8 group-hover:text-black w-10 h-10 transition-colors"></i>
+                            <h4 class="text-2xl font-black uppercase tracking-tighter mb-4">Auto Mobility</h4>
+                            <p class="text-sm opacity-50 leading-relaxed font-medium">Next-gen config engines and OS.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- ARCHIVES VIEW -->
+        <div id="archives" class="view pt-40 px-6 md:px-24">
+            <h1 class="text-7xl md:text-[12rem] font-black text-white uppercase tracking-tighter mb-20 italic">Archives.</h1>
+            <div id="archives-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 pb-40">
+                <!-- Archive items rendered via JS -->
+            </div>
+        </div>
+
+        <!-- LABORATORY VIEW -->
+        <div id="laboratory" class="view pt-40 px-6 md:px-24">
+            <div class="max-w-4xl mb-40">
+                <h1 class="text-7xl md:text-[10rem] font-black text-white uppercase tracking-tighter mb-12 italic">Laboratory.</h1>
+                <p class="text-3xl text-zinc-500 font-light leading-relaxed mb-20">We stress-test every prototype. From procedural shaders to neural logic, this is where original code begins.</p>
+                <div class="space-y-4">
+                    <div class="p-10 border border-white/5 bg-white/5 rounded-[3rem] flex justify-between items-center group cursor-pointer hover:border-[#00D1FF] transition-all">
+                        <span class="text-2xl font-black text-white uppercase tracking-widest">Stress Test v1.4</span>
+                        <i data-lucide="zap" class="text-[#00D1FF] w-8 h-8"></i>
+                    </div>
+                    <div class="p-10 border border-white/5 bg-white/5 rounded-[3rem] flex justify-between items-center group cursor-pointer hover:border-[#00D1FF] transition-all">
+                        <span class="text-2xl font-black text-white uppercase tracking-widest">Haptic UI Study</span>
+                        <i data-lucide="zap" class="text-[#00D1FF] w-8 h-8"></i>
+                    </div>
+                    <div class="p-10 border border-white/5 bg-white/5 rounded-[3rem] flex justify-between items-center group cursor-pointer hover:border-[#00D1FF] transition-all">
+                        <span class="text-2xl font-black text-white uppercase tracking-widest">Vertex Logic Research</span>
+                        <i data-lucide="zap" class="text-[#00D1FF] w-8 h-8"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CONNECT VIEW -->
+        <div id="connect" class="view pt-40 px-6 md:px-24">
+            <div class="max-w-4xl mx-auto mb-40">
+                <h1 class="text-7xl md:text-[12rem] font-black text-white uppercase tracking-tighter italic text-center mb-20 leading-none">Connect.</h1>
+                <div class="bg-white/5 border border-white/10 p-12 md:p-24 rounded-[4rem] space-y-12 backdrop-blur-3xl shadow-2xl">
+                   <div class="grid md:grid-cols-2 gap-12">
+                      <div class="space-y-4 border-b border-white/10 py-4 focus-within:border-[#00D1FF] transition-colors text-left">
+                         <label class="text-[10px] font-black text-zinc-600 uppercase tracking-widest block mb-2">User_Identity</label>
+                         <input type="text" placeholder="GUEST_NAME" class="bg-transparent w-full text-2xl font-black uppercase outline-none placeholder:text-zinc-900 text-white">
+                      </div>
+                      <div class="space-y-4 border-b border-white/10 py-4 focus-within:border-[#00D1FF] transition-colors text-left">
+                         <label class="text-[10px] font-black text-zinc-600 uppercase tracking-widest block mb-2">Communication</label>
+                         <input type="email" placeholder="UPLINK_EMAIL" class="bg-transparent w-full text-2xl font-black uppercase outline-none placeholder:text-zinc-900 text-white">
+                      </div>
+                   </div>
+                   <div class="space-y-4 border-b border-white/10 py-4 focus-within:border-[#00D1FF] transition-colors text-left">
+                      <label class="text-[10px] font-black text-zinc-600 uppercase tracking-widest block mb-2">Manifesto Payload</label>
+                      <textarea rows="3" placeholder="TELL US THE STORY" class="bg-transparent w-full text-2xl font-black uppercase outline-none placeholder:text-zinc-900 resize-none text-white"></textarea>
+                   </div>
+                   <button class="w-full py-10 bg-[#00D1FF] text-black font-black uppercase text-xs tracking-[0.5em] rounded-3xl hover:bg-white transition-all shadow-xl shadow-[#00D1FF]/20">Initialize Uplink</button>
+                </div>
+             </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="py-20 px-6 md:px-24 border-t border-white/5 bg-[#020205]/80 backdrop-blur-xl z-10 relative mt-40">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-start gap-20">
+          <div class="max-w-xs text-left">
+            <span class="text-4xl font-black italic text-white tracking-tighter">SK_STUDIO.</span>
+            <p class="text-[10px] text-zinc-600 tracking-[0.4em] uppercase mt-10 leading-loose">
+              Established in Pune, India. Rebuilding the web through technical precision and high-fidelity logic.
+            </p>
+          </div>
+          <div class="grid grid-cols-2 md:grid-cols-3 gap-16 text-left">
+            <div>
+              <h4 class="text-[10px] font-black text-[#00D1FF] uppercase tracking-widest mb-10">Nodes</h4>
+              <div class="flex flex-col gap-6 text-[10px] text-slate-500 font-bold uppercase tracking-widest">
+                <span onclick="showView('home')" class="hover:text-white cursor-pointer transition-colors">Home</span>
+                <span onclick="showView('archives')" class="hover:text-white cursor-pointer transition-colors">Archives</span>
+                <span onclick="showView('laboratory')" class="hover:text-white cursor-pointer transition-colors">Laboratory</span>
+              </div>
+            </div>
+            <div>
+              <h4 class="text-[10px] font-black text-[#00D1FF] uppercase tracking-widest mb-10">Network</h4>
+              <div class="flex flex-col gap-6 text-[10px] text-slate-500 font-bold uppercase tracking-widest">
+                <span class="hover:text-white cursor-pointer">Instagram</span>
+                <span class="hover:text-white cursor-pointer">X / Twitter</span>
+                <span class="hover:text-white cursor-pointer">LinkedIn</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="mt-40 pt-10 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-10">
+          <div class="text-[10px] font-black text-zinc-800 tracking-[1em] uppercase">
+            ©2024 Engineering by SK Software Developers
+          </div>
+          <div class="flex items-center gap-6">
+            <span class="text-[10px] text-[#00D1FF] font-black uppercase tracking-widest">AURA_OS: LIVE</span>
+          </div>
+        </div>
+    </footer>
+
+    <script>
+        // --- VIEW MANAGEMENT ---
+        function showView(viewId) {
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            const target = document.getElementById(viewId);
+            if(target) target.classList.add('active');
+
+            // Update Nav links
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.remove('text-white');
+                link.classList.add('text-zinc-500');
+                const indicator = link.querySelector('.nav-indicator');
+                if(indicator) indicator.remove();
+            });
+
+            const activeLink = document.querySelector(`[data-link="${viewId}"]`);
+            if(activeLink) {
+                activeLink.classList.remove('text-zinc-500');
+                activeLink.classList.add('text-white');
+                const span = document.createElement('span');
+                span.className = "nav-indicator absolute -bottom-1 left-0 w-full h-[2px] bg-[#00D1FF] rounded-full";
+                activeLink.appendChild(span);
+            }
+
+            // Update Aura message
+            const auraMsgs = {
+                home: "PROCESSOR_CORE: OPTIMAL",
+                archives: "DATA_VAULT: INDEXING",
+                laboratory: "RESEARCH_ENGINE: HIGH_LOAD",
+                connect: "UPLINK_ENCRYPTION: ACTIVE"
+            };
+            document.getElementById('aura-msg').innerText = auraMsgs[viewId] || auraMsgs.home;
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            if(mobileMenuOpen) toggleMobileMenu();
+        }
+
+        let mobileMenuOpen = false;
+        function toggleMobileMenu() {
+            mobileMenuOpen = !mobileMenuOpen;
+            const menu = document.getElementById('mobile-menu');
+            menu.style.transform = mobileMenuOpen ? 'translateX(0)' : 'translateX(100%)';
+            document.getElementById('menu-icon').setAttribute('data-lucide', mobileMenuOpen ? 'x' : 'menu');
+            lucide.createIcons();
+        }
+
+        // --- RENDER TESTIMONIALS ---
+        const transmissions = [
+            { 
+                id: "T-041",
+                sector: "Aerospace",
+                client: "AeroDynamics Inc.",
+                logic: "98.4%",
+                msg: "Decryption successful. SK Studio's telemetry architecture surpassed all mission-critical benchmarks."
+            },
+            { 
+                id: "T-092",
+                sector: "Fintech",
+                client: "Nexus Capital",
+                logic: "99.9%",
+                msg: "The original code for our ledger system provides absolute security. Truly studio-grade execution."
+            },
+            { 
+                id: "T-115",
+                sector: "Enterprise",
+                client: "Global Logistics",
+                logic: "97.2%",
+                msg: "Zero templates. Pure performance. The bespoke engine has redefined our operational efficiency."
+            }
+        ];
+
+        const testimonialGrid = document.getElementById('testimonial-grid');
+        transmissions.forEach(t => {
+            testimonialGrid.innerHTML += `
+                <div class="transmission-card group relative p-10 bg-white/5 border border-white/5 rounded-[2.5rem] hover:border-[#00D1FF]/50 transition-all duration-500 overflow-hidden cursor-crosshair">
+                    <div class="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-100 group-hover:text-[#00D1FF] transition-all">
+                        <span class="font-mono text-xs">${t.id}</span>
+                    </div>
+                    <div class="flex items-center gap-3 mb-6">
+                        <div class="w-1.5 h-1.5 rounded-full bg-[#00D1FF]"></div>
+                        <span class="text-[9px] font-black text-zinc-500 uppercase tracking-widest">${t.sector}</span>
+                    </div>
+                    <p class="decrypt-text text-xl font-light text-white leading-relaxed mb-10 italic">"${t.msg}"</p>
+                    <div class="border-t border-white/5 pt-6 flex justify-between items-center">
+                        <div>
+                            <div class="text-sm font-black text-white uppercase">${t.client}</div>
+                            <div class="text-[8px] text-zinc-600 font-bold uppercase tracking-[0.2em]">Verified Partner</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-[10px] font-mono text-[#00D1FF]">${t.logic}</div>
+                            <div class="text-[8px] text-zinc-600 font-bold uppercase">Success</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        // --- RENDER TECH STACK ---
+        const techs = [
+            { n: 'React', i: 'code' }, { n: 'Three.js', i: 'box' }, { n: 'Node.js', i: 'server' }, { n: 'WebGPU', i: 'monitor' },
+            { n: 'Rust', i: 'zap' }, { n: 'Go', i: 'compass' }, { n: 'PostgreSQL', i: 'database' }, { n: 'GraphQL', i: 'activity' }
+        ];
+
+        const stackGrid = document.getElementById('tech-stack-grid');
+        techs.forEach(tech => {
+            stackGrid.innerHTML += `
+                <div class="group p-8 border border-white/5 bg-white/5 rounded-3xl flex flex-col items-center justify-center hover:border-[#00D1FF] transition-all text-center">
+                    <i data-lucide="${tech.i}" class="text-zinc-700 group-hover:text-[#00D1FF] transition-colors mb-4 w-8 h-8"></i>
+                    <span class="text-[10px] font-black text-zinc-500 group-hover:text-white uppercase tracking-widest">${tech.n}</span>
+                </div>
+            `;
+        });
+
+        // --- RENDER ARCHIVES ---
+        const archiveItems = [
+            { t: 'AXON_CORE', c: '3D', i: 'https://images.unsplash.com/photo-1614850523296-d8c1af93d400?q=80&w=800' },
+            { t: 'FIN_NODE', c: 'Logic', i: 'https://images.unsplash.com/photo-1639762681485-074b7f938ba0?q=80&w=800' },
+            { t: 'AERO_SYS', c: 'Aero', i: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=800' },
+            { t: 'KRONOS', c: 'Fintech', i: 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=800' },
+            { t: 'NEON', c: 'Motion', i: 'https://images.unsplash.com/photo-1620641788421-7a1c342ea42e?q=80&w=800' },
+            { t: 'VOID', c: 'Web3', i: 'https://images.unsplash.com/photo-1614728263952-84ea206f99b6?q=80&w=800' }
+        ];
+
+        const archivesGrid = document.getElementById('archives-grid');
+        archiveItems.forEach(item => {
+            archivesGrid.innerHTML += `
+                <div class="group relative overflow-hidden rounded-[3rem] bg-white/5 border border-white/10 hover:border-[#00D1FF]/50 transition-all duration-700 cursor-pointer h-[400px]">
+                    <img src="${item.i}" class="absolute inset-0 w-full h-full object-cover opacity-10 group-hover:scale-105 group-hover:opacity-40 transition-all duration-1000 grayscale">
+                    <div class="relative z-10 p-12 h-full flex flex-col justify-end">
+                        <div class="flex items-center gap-3 mb-4 text-left">
+                            <div class="w-2 h-2 bg-[#00D1FF] rounded-full animate-pulse"></div>
+                            <span class="text-[10px] font-black text-[#00D1FF] uppercase tracking-widest">${item.c}</span>
+                        </div>
+                        <h3 class="text-4xl font-black text-white tracking-tighter uppercase leading-[0.9] text-left">${item.t}</h3>
+                        <div class="mt-8 flex items-center gap-4 opacity-0 group-hover:opacity-100 transition-all translate-y-4 group-hover:translate-y-0">
+                            <div class="w-12 h-12 bg-white text-black rounded-full flex items-center justify-center"><i data-lucide="arrow-up-right"></i></div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        // --- TERMINAL LOGIC ---
+        const fullLog = [
+            "[SYSTEM]: Initializing SK_STUDIO_PROTOCOL...",
+            "[LOGIC]: Zero templates detected. Security: HIGH.",
+            "[STATUS]: Global Nodes online (Pune, IN).",
+            "[ENGINE]: Three.js R&D Core active.",
+            "[AURA]: Scanning user metadata... Auth: GRANTED.",
+            "[READY]: Awaiting project initialization."
+        ];
+        const termContent = document.getElementById('terminal-content');
+        let lineIdx = 0;
+        function typeTerminal() {
+            if(lineIdx < fullLog.length) {
+                const line = document.createElement('div');
+                line.className = 'mb-2 opacity-0 transform translate-x-[-10px] transition-all duration-500 text-left';
+                line.innerHTML = `<span class="text-[#00D1FF] mr-2 opacity-50">$</span> ${fullLog[lineIdx]}`;
+                termContent.appendChild(line);
+                setTimeout(() => { line.classList.remove('opacity-0', 'translate-x-[-10px]'); }, 50);
+                lineIdx++;
+                setTimeout(typeTerminal, 1500);
+            }
+        }
+
+        // --- THREE.JS: NEBULA ---
+        function initNebula() {
+            const container = document.getElementById('nebula-container');
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            container.appendChild(renderer.domElement);
+
+            const count = 1500;
+            const geometry = new THREE.BoxGeometry(0.02, 0.02, 0.02);
+            const material = new THREE.MeshBasicMaterial({ color: 0x00D1FF, transparent: true, opacity: 0.2 });
+            const mesh = new THREE.InstancedMesh(geometry, material, count);
+            
+            const dummy = new THREE.Object3D();
+            for (let i = 0; i < count; i++) {
+                dummy.position.set((Math.random() - 0.5) * 20, (Math.random() - 0.5) * 20, (Math.random() - 0.5) * 20);
+                dummy.updateMatrix();
+                mesh.setMatrixAt(i, dummy.matrix);
+            }
+            scene.add(mesh);
+            camera.position.z = 8;
+
+            function animate() {
+                requestAnimationFrame(animate);
+                mesh.rotation.y += 0.0003;
+                mesh.rotation.z += 0.0001;
+                renderer.render(scene, camera);
+            }
+            animate();
+
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+        }
+
+        // --- THREE.JS: AURA CORE ---
+        function initAura() {
+            const container = document.getElementById('aura-container');
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
+            const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(width, height);
+            container.appendChild(renderer.domElement);
+
+            const group = new THREE.Group();
+            function createCube(size, opacity, color) {
+                const geo = new THREE.BoxGeometry(size, size, size);
+                const mat = new THREE.MeshPhongMaterial({
+                    color: color, wireframe: true, transparent: true, opacity: opacity,
+                    emissive: color, emissiveIntensity: 0.5
+                });
+                return new THREE.Mesh(geo, mat);
+            }
+            const core = createCube(1, 0.8, 0x00D1FF);
+            const mid = createCube(1.5, 0.3, 0x7000FF);
+            const outer = createCube(2.1, 0.1, 0x00D1FF);
+            group.add(core, mid, outer);
+            scene.add(group);
+
+            const light = new THREE.PointLight(0xffffff, 1.5);
+            light.position.set(5, 5, 5);
+            scene.add(light);
+            camera.position.z = 4;
+
+            function animate() {
+                requestAnimationFrame(animate);
+                core.rotation.y += 0.02;
+                mid.rotation.y -= 0.01;
+                mid.rotation.x += 0.01;
+                outer.rotation.z += 0.005;
+                const pulse = 1 + Math.sin(Date.now() * 0.002) * 0.05;
+                core.scale.setScalar(pulse);
+                renderer.render(scene, camera);
+            }
+            animate();
+        }
+
+        window.onload = () => {
+            initNebula();
+            initAura();
+            lucide.createIcons();
+            typeTerminal();
+        };
+    </script>
+</body>
+</html>
